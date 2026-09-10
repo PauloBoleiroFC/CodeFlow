@@ -1,0 +1,94 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model AppSettings {
+  id                String   @id @default("global")
+  branchFormat      String   @default("{tipo}/{num-task}-{slug}") @db.VarChar(120)
+  defaultBranchType String   @default("task") @db.VarChar(40)
+  updatedAt         DateTime @updatedAt
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  name         String        @db.VarChar(160)
+  slug         String        @unique @db.VarChar(120)
+  description  String?       @db.LongText
+  observations String?       @db.LongText
+  branchFormat String?       @db.VarChar(120)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  tasks        Task[]
+  links        ProjectLink[]
+}
+
+model ProjectLink {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String   @db.VarChar(120)
+  url       String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model Task {
+  id                  String      @id @default(cuid())
+  projectId           String?
+  project             Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  title               String      @db.VarChar(200)
+  summary             String      @db.Text
+  cardNumber          String?     @db.VarChar(40)
+  status              String      @default("development") @db.VarChar(40)
+  branchType          String      @default("task") @db.VarChar(40)
+  suggestedBranchType String?     @db.VarChar(40)
+  branchTypeReason    String?     @db.Text
+  slug                String      @db.VarChar(200)
+  branchName          String      @db.VarChar(255)
+  branchManual        Boolean     @default(false)
+  tagsJson            String      @db.Text
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  events              TaskEvent[]
+
+  @@index([projectId])
+  @@index([branchType])
+  @@index([status])
+}
+
+model TaskEvent {
+  id            String   @id @default(cuid())
+  taskId        String
+  task          Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  type          String   @db.VarChar(40)
+  previousValue String?  @db.Text
+  newValue      String?  @db.Text
+  userName      String   @default("Usuário") @db.VarChar(120)
+  createdAt     DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+model WikiArticle {
+  id        String   @id @default(cuid())
+  title     String   @db.VarChar(160)
+  slug      String   @unique @db.VarChar(120)
+  summary   String   @db.Text
+  content   String   @db.LongText
+  category  String?  @db.VarChar(80)
+  tagsJson  String   @db.Text
+  projectId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([projectId])
+  @@index([updatedAt])
+}

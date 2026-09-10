@@ -1,36 +1,34 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Codeflow
 
-## Getting Started
+Gestão de tarefas com padrão estruturado de branches:
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+{tipo}/{num-task}-{slug}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Next.js (App Router) + TypeScript
+- Prisma + SQLite (troque `DATABASE_URL` para Postgres quando quiser)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Setup
 
-## Learn More
+```bash
+npm install
+npx prisma migrate dev --name init
+npm run db:seed
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Scripts úteis
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run test:branch` — testes do domínio de nomenclatura
+- `npm run db:seed` — DataTrade, PrimiciaFlex e tarefas de exemplo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Seção 10 coberta
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Tipos de branch + tabela de referência
+- `generateSlug` centralizado
+- Sugestão de tipo (IA heurística) sem impor escolha
+- Formato global/por projeto
+- Validação, edição manual, copiar branch, timeline e memória técnica
