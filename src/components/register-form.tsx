@@ -2,37 +2,43 @@
 
 import { type FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { formatApiError } from "@/lib/branch";
 
-export function LoginForm() {
+export function RegisterForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [email, setEmail] = useState("paulo@codeflow.local");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    setLoading(true);
     setError(null);
+
+    if (password !== confirmPassword) {
+      setError("A senha e a confirmação não são iguais.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password, confirmPassword }),
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(formatApiError(data.error, "Falha ao entrar"));
+        throw new Error(formatApiError(data.error, "Falha ao cadastrar"));
       }
-      const next = searchParams.get("next") || "/";
-      router.replace(next.startsWith("/") ? next : "/");
+      router.replace("/");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erro ao entrar");
+      setError(err instanceof Error ? err.message : "Erro ao cadastrar");
     } finally {
       setLoading(false);
     }
@@ -49,16 +55,28 @@ export function LoginForm() {
             <span className="brand-flow">Flow</span>
           </p>
           <h1 className="section-title" style={{ fontSize: "1.5rem" }}>
-            Entrar
+            Criar conta
           </h1>
-          <p className="muted">Acesse o painel técnico.</p>
+          <p className="muted">Cadastre-se para acessar o painel.</p>
         </div>
+
+        <label>
+          Nome
+          <input
+            type="text"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            maxLength={120}
+          />
+        </label>
 
         <label>
           E-mail
           <input
             type="email"
-            autoComplete="username"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -69,22 +87,35 @@ export function LoginForm() {
           Senha
           <input
             type="password"
-            autoComplete="current-password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
+            minLength={6}
+          />
+        </label>
+
+        <label>
+          Confirmar senha
+          <input
+            type="password"
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+            minLength={6}
           />
         </label>
 
         {error ? <p className="error">{error}</p> : null}
 
         <Button type="submit" variant="success" loading={loading}>
-          Entrar
+          Cadastrar
         </Button>
 
         <p className="muted" style={{ margin: 0, textAlign: "center" }}>
-          Não tem conta?{" "}
-          <Link href="/register">Criar conta</Link>
+          Já tem conta?{" "}
+          <Link href="/login">Entrar</Link>
         </p>
       </form>
     </main>

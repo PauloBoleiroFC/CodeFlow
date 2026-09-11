@@ -10,9 +10,9 @@ import { ProfileModal } from "@/components/profile-modal";
 
 export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isLogin = pathname === "/login";
+  const isAuthPage = pathname === "/login" || pathname === "/register";
 
-  if (isLogin) {
+  if (isAuthPage) {
     return <AuthProvider>{children}</AuthProvider>;
   }
 
