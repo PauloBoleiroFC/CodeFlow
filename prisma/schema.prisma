@@ -92,3 +92,13 @@ model WikiArticle {
   @@index([projectId])
   @@index([updatedAt])
 }
+
+model User {
+  id           String   @id @default(cuid())
+  name         String   @db.VarChar(120)
+  email        String   @unique @db.VarChar(160)
+  passwordHash String   @db.VarChar(255)
+  role         String   @default("admin") @db.VarChar(40)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

@@ -1,3 +1,4 @@
+import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   DEFAULT_TASK_STATUS,
@@ -80,9 +81,10 @@ export async function getDashboardData(): Promise<DashboardData> {
   since.setDate(since.getDate() - (daysBack - 1));
   since.setHours(0, 0, 0, 0);
 
-  const [projects, tasks, events] = await Promise.all([
+  const [session, projects, tasks, events] = await Promise.all([
+    getSessionUser(),
     prisma.project.findMany({
-      orderBy: { name: "asc" },
+      orderBy: { updatedAt: "desc" },
       include: { _count: { select: { tasks: true } } },
     }),
     prisma.task.findMany({
@@ -174,7 +176,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   }));
 
   return {
-    userName: "Paulo",
+    userName: session?.name ?? "usuário",
     greeting: greetingForHour(now.getHours()),
     metrics: {
       total: tasks.length,

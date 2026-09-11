@@ -6,17 +6,15 @@ import {
   BookOpen,
   ClipboardList,
   FolderKanban,
-  LayoutDashboard,
+  Home,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
   Settings,
 } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 import { useShell } from "@/components/layout/app-shell";
-import { Button } from "@/components/ui/button";
 
 const NAV = [
-  { href: "/", label: "Home", icon: LayoutDashboard },
+  { href: "/", label: "Home", icon: Home },
   { href: "/tasks", label: "Tarefas", icon: ClipboardList },
   { href: "/projects", label: "Projetos", icon: FolderKanban },
   { href: "/wiki", label: "Wiki", icon: BookOpen },
@@ -30,7 +28,8 @@ function isActive(pathname: string, href: string) {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { collapsed, toggleCollapsed, closeMobile } = useShell();
+  const { collapsed, closeMobile } = useShell();
+  const { user, initials, logout, openProfile } = useAuth();
 
   return (
     <>
@@ -44,13 +43,23 @@ export function Sidebar() {
           <span className="brand-mark" aria-hidden>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
               <path
-                d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"
+                d="M4 7.5L10 4l6 3.5v7L10 18l-6-3.5v-7z"
                 stroke="currentColor"
                 strokeWidth="1.8"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M10 4v14M4 7.5l6 3.5 6-3.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
               />
             </svg>
           </span>
-          <span className="brand-text">Codeflow</span>
+          <span className="brand-text">
+            <span className="brand-code">Code</span>{" "}
+            <span className="brand-flow">Flow</span>
+          </span>
         </Link>
 
         <nav className="sidebar-nav">
@@ -76,47 +85,36 @@ export function Sidebar() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-chip" title={collapsed ? "Paulo" : undefined}>
+          <button
+            type="button"
+            className="user-chip user-chip-btn"
+            title={collapsed ? user?.name ?? "Usuário" : undefined}
+            onClick={() => {
+              closeMobile();
+              openProfile();
+            }}
+            aria-label="Abrir meu perfil"
+          >
             <span className="avatar" aria-hidden>
-              P
+              {initials}
             </span>
             <div className="user-meta">
-              <strong>Paulo</strong>
-              <span>Admin</span>
+              <strong>{user?.name ?? "Usuário"}</strong>
+              <span>{user?.role ?? "admin"}</span>
             </div>
-          </div>
+          </button>
           <button
             type="button"
             className="nav-item"
             title={collapsed ? "Sair" : undefined}
             onClick={() => {
-              /* auth not implemented — UI only */
+              void logout();
             }}
           >
             <LogOut aria-hidden />
             <span className="nav-label">Sair</span>
           </button>
         </div>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="sidebar-collapse-btn desktop-only"
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
-          leftIcon={
-            collapsed ? (
-              <PanelLeftOpen size={16} />
-            ) : (
-              <PanelLeftClose size={16} />
-            )
-          }
-        >
-          <span className="nav-label">
-            {collapsed ? "Expandir" : "Recolher"}
-          </span>
-        </Button>
       </aside>
     </>
   );

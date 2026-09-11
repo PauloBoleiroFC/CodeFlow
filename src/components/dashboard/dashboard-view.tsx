@@ -1,27 +1,42 @@
+import Link from "next/link";
 import {
-  Bug,
+  CheckCircle2,
   ClipboardList,
-  FileCode2,
+  FlaskConical,
   FolderKanban,
-  Sparkles,
+  Rocket,
 } from "lucide-react";
-import { StatCard } from "@/components/ui/stat-card";
+import { EvolutionLineChart } from "@/components/dashboard/charts";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  BranchTypeChart,
-  EvolutionLineChart,
-  ProjectBarChart,
-} from "@/components/dashboard/charts";
+import { StatCard } from "@/components/ui/stat-card";
 import type { DashboardData } from "@/lib/dashboard-data";
+import {
+  isTaskStatus,
+  TASK_STATUS_LABELS,
+  taskStatusBadgeClass,
+  type TaskStatus,
+} from "@/lib/task-status";
+
+function statusCount(data: DashboardData, status: TaskStatus) {
+  return data.byStatus.find((item) => item.status === status)?.value ?? 0;
+}
+
+function taskHref(task: DashboardData["recentTasks"][number]) {
+  return task.projectId
+    ? `/projects/${task.projectId}/tasks/${task.id}`
+    : `/tasks/${task.id}`;
+}
 
 export function DashboardView({ data }: { data: DashboardData }) {
+  const recentProjects = data.projects.slice(0, 6);
+
   return (
     <div>
       <section className="greeting">
         <h1>
           {data.greeting}, {data.userName}
         </h1>
-        <p>Veja o andamento das suas tarefas e projetos.</p>
+        <p>Acompanhe o fluxo real das tarefas e projetos.</p>
       </section>
 
       <section className="stats-grid" aria-label="Indicadores">
@@ -36,34 +51,33 @@ export function DashboardView({ data }: { data: DashboardData }) {
           icon={ClipboardList}
         />
         <StatCard
-          title="Projetos"
-          value={data.projectStats.total}
-          footnote={`${data.projectStats.withTasks} com tarefas · ${data.projectStats.withoutTasks} vazios`}
-          icon={FolderKanban}
+          title="Em desenvolvimento"
+          value={statusCount(data, "development")}
+          footnote={TASK_STATUS_LABELS.development}
+          icon={Rocket}
         />
         <StatCard
-          title="Features"
-          value={data.metrics.features}
-          footnote="Tipo feature/"
-          icon={Sparkles}
+          title="Em homologação"
+          value={statusCount(data, "homologation")}
+          footnote={TASK_STATUS_LABELS.homologation}
+          icon={FlaskConical}
         />
         <StatCard
-          title="Correções"
-          value={data.metrics.fixes}
-          footnote="fix / bugfix / hotfix"
-          icon={Bug}
-        />
-        <StatCard
-          title="Tarefas técnicas"
-          value={data.metrics.tasks}
-          footnote="task / chore / refactor"
-          icon={FileCode2}
+          title="Finalizadas"
+          value={statusCount(data, "finished")}
+          footnote={TASK_STATUS_LABELS.finished}
+          icon={CheckCircle2}
         />
       </section>
 
       <section className="charts-row">
         <article className="panel chart-card">
-          <h2>Tarefas por status</h2>
+          <h2>Evolução das tarefas</h2>
+          <p className="chart-subtitle">Tarefas criadas nos últimos 30 dias</p>
+          <EvolutionLineChart data={data.evolution} />
+        </article>
+        <article className="panel chart-card">
+          <h2>Resumo por status</h2>
           <p className="chart-subtitle">Distribuição real do workflow</p>
           {data.metrics.total === 0 ? (
             <EmptyState
@@ -73,10 +87,7 @@ export function DashboardView({ data }: { data: DashboardData }) {
           ) : (
             <div className="status-bars" role="list">
               {data.byStatus.map((item) => {
-                const pct =
-                  data.metrics.total > 0
-                    ? Math.round((item.value / data.metrics.total) * 100)
-                    : 0;
+                const pct = Math.round((item.value / data.metrics.total) * 100);
                 return (
                   <div
                     key={item.status}
@@ -97,25 +108,89 @@ export function DashboardView({ data }: { data: DashboardData }) {
             </div>
           )}
         </article>
-        <article className="panel chart-card">
-          <h2>Tarefas por projeto</h2>
-          <p className="chart-subtitle">Volume por projeto</p>
-          <ProjectBarChart data={data.byProject} />
-        </article>
       </section>
 
       <section className="charts-row">
         <article className="panel chart-card">
-          <h2>Tarefas por tipo de branch</h2>
-          <p className="chart-subtitle">
-            Distribuição real das tarefas cadastradas
-          </p>
-          <BranchTypeChart data={data.byBranchType} />
+          <div className="panel-header">
+            <div>
+              <h2>Projetos recentes</h2>
+              <p className="chart-subtitle">Atualizados mais recentemente</p>
+            </div>
+            <Link href="/projects" className="muted">
+              Ver todos
+            </Link>
+          </div>
+          {recentProjects.length === 0 ? (
+            <EmptyState
+              title="Nenhum projeto"
+              description="Cadastre um projeto para começar."
+            />
+          ) : (
+            <div className="dash-list">
+              {recentProjects.map((project) => (
+                <Link
+                  key={project.id}
+                  href={`/projects/${project.id}`}
+                  className="dash-list-item"
+                >
+                  <div className="dash-list-meta">
+                    <strong>{project.name}</strong>
+                    <span>
+                      {project.taskCount}{" "}
+                      {project.taskCount === 1 ? "tarefa" : "tarefas"}
+                    </span>
+                  </div>
+                  <span className="dash-list-aside" aria-hidden>
+                    <FolderKanban size={16} />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
         </article>
+
         <article className="panel chart-card">
-          <h2>Evolução das tarefas</h2>
-          <p className="chart-subtitle">Tarefas criadas nos últimos 30 dias</p>
-          <EvolutionLineChart data={data.evolution} />
+          <div className="panel-header">
+            <div>
+              <h2>Tarefas recentes</h2>
+              <p className="chart-subtitle">Últimas atualizações</p>
+            </div>
+            <Link href="/tasks" className="muted">
+              Ver todas
+            </Link>
+          </div>
+          {data.recentTasks.length === 0 ? (
+            <EmptyState
+              title="Nenhuma tarefa"
+              description="As tarefas recentes aparecem aqui."
+            />
+          ) : (
+            <div className="dash-list">
+              {data.recentTasks.map((task) => {
+                const status = isTaskStatus(task.status)
+                  ? task.status
+                  : "development";
+                return (
+                  <Link
+                    key={task.id}
+                    href={taskHref(task)}
+                    className="dash-list-item"
+                  >
+                    <div className="dash-list-meta">
+                      <strong>{task.title}</strong>
+                      <span>{task.projectName}</span>
+                    </div>
+                    <span className="dash-list-aside">
+                      <span className={taskStatusBadgeClass(status)}>
+                        {TASK_STATUS_LABELS[status]}
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </article>
       </section>
     </div>

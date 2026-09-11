@@ -4,11 +4,28 @@ import {
   DEFAULT_BRANCH_FORMAT,
   generateSlug,
 } from "../src/lib/branch";
+import { hashPassword } from "../src/lib/auth";
 import { createPrismaClient } from "../src/lib/prisma";
 
 const prisma = createPrismaClient();
 
 async function main() {
+  const adminPassword = process.env.ADMIN_PASSWORD || "CodeFlow@2026";
+  await prisma.user.upsert({
+    where: { email: "paulo@codeflow.local" },
+    update: {
+      name: "Paulo",
+      role: "admin",
+      passwordHash: hashPassword(adminPassword),
+    },
+    create: {
+      name: "Paulo",
+      email: "paulo@codeflow.local",
+      role: "admin",
+      passwordHash: hashPassword(adminPassword),
+    },
+  });
+
   await prisma.appSettings.upsert({
     where: { id: "global" },
     update: { branchFormat: DEFAULT_BRANCH_FORMAT },
@@ -110,6 +127,7 @@ async function main() {
 
   console.log("Seed OK:", {
     projects: [datatrade.name, primicia.name],
+    admin: "paulo@codeflow.local",
   });
 }
 

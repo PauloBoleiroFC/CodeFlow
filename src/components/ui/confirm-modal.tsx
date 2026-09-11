@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 
 export type ConfirmModalProps = {
   open: boolean;
@@ -26,65 +27,40 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
-  const titleId = useId();
-  const descId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (!open) return;
     cancelRef.current?.focus();
-
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && !loading) onCancel();
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open, loading, onCancel]);
-
-  if (!open) return null;
+  }, [open]);
 
   return (
-    <div
-      className="confirm-backdrop"
-      role="presentation"
-      onClick={() => {
-        if (!loading) onCancel();
-      }}
+    <Modal
+      open={open}
+      onClose={onCancel}
+      title={title}
+      description={description}
+      disableClose={loading}
     >
-      <div
-        className="confirm-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={descId}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id={titleId} className="section-title">
-          {title}
-        </h2>
-        <p id={descId} className="muted" style={{ margin: "0.65rem 0 1.25rem" }}>
-          {description}
-        </p>
-        <div className="actions" style={{ justifyContent: "flex-end" }}>
-          <Button
-            ref={cancelRef}
-            type="button"
-            variant="ghost"
-            onClick={onCancel}
-            disabled={loading}
-          >
-            {cancelLabel}
-          </Button>
-          <Button
-            type="button"
-            variant={variant === "danger" ? "danger" : "primary"}
-            loading={loading}
-            onClick={onConfirm}
-          >
-            {confirmLabel}
-          </Button>
-        </div>
+      <div className="actions" style={{ justifyContent: "flex-end" }}>
+        <Button
+          ref={cancelRef}
+          type="button"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={loading}
+        >
+          {cancelLabel}
+        </Button>
+        <Button
+          type="button"
+          variant={variant === "danger" ? "danger" : "success"}
+          loading={loading}
+          onClick={onConfirm}
+        >
+          {confirmLabel}
+        </Button>
       </div>
-    </div>
+    </Modal>
   );
 }

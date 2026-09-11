@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Bell, Menu, Search } from "lucide-react";
+import { useAuth } from "@/components/auth-provider";
 import { useShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 
@@ -31,18 +32,23 @@ function resolveTitle(pathname: string) {
   if (pathname.includes("/edit")) return "Editar projeto";
   if (pathname.includes("/tasks/")) return "Detalhe da tarefa";
   if (pathname.startsWith("/projects/")) return "Projeto";
-  return "Codeflow";
+  if (pathname.startsWith("/wiki/")) return "Wiki";
+  return "Code Flow";
 }
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { setMobileOpen } = useShell();
+  const { collapsed, toggleCollapsed, mobileOpen, setMobileOpen, closeMobile } =
+    useShell();
+  const { initials, user, openProfile } = useAuth();
   const [open, setOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<SearchItem[]>([]);
   const [active, setActive] = useState(0);
   const [loading, setLoading] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   const title = resolveTitle(pathname);
 
@@ -52,11 +58,26 @@ export function Header() {
         e.preventDefault();
         setOpen(true);
       }
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setNotificationsOpen(false);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!notificationsRef.current?.contains(e.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    }
+    if (notificationsOpen) {
+      document.addEventListener("mousedown", onDocClick);
+      return () => document.removeEventListener("mousedown", onDocClick);
+    }
+  }, [notificationsOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -124,6 +145,15 @@ export function Header() {
     router.push(href);
   }
 
+  function onMenuClick() {
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      if (mobileOpen) closeMobile();
+      else setMobileOpen(true);
+      return;
+    }
+    toggleCollapsed();
+  }
+
   return (
     <>
       <header className="app-header">
@@ -132,11 +162,13 @@ export function Header() {
             type="button"
             variant="outline"
             size="icon"
-            className="mobile-only"
-            aria-label="Abrir menu"
-            onClick={() => setMobileOpen(true)}
+            aria-label={
+              collapsed ? "Expandir menu" : "Recolher ou fechar menu"
+            }
+            aria-expanded={mobileOpen || !collapsed}
+            onClick={onMenuClick}
           >
-            <Menu size={18} />
+            <Menu size={18} aria-hidden />
           </Button>
           <div>
             <h1 className="page-title-sm">{title}</h1>
@@ -157,21 +189,43 @@ export function Header() {
             onClick={() => setOpen(true)}
             aria-label="Buscar"
           >
-            <Search size={16} />
-            <span>Buscar tarefas, projetos ou wiki...</span>
+            <Search size={16} aria-hidden />
+            <span>Pesquisar...</span>
             <kbd className="desktop-only">Ctrl K</kbd>
           </button>
-          <Button
+
+          <div className="header-notifications" ref={notificationsRef}>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              aria-label="Notificações"
+              aria-expanded={notificationsOpen}
+              onClick={() => setNotificationsOpen((prev) => !prev)}
+            >
+              <Bell size={16} aria-hidden />
+            </Button>
+            {notificationsOpen ? (
+              <div className="notifications-panel" role="dialog" aria-label="Notificações">
+                <p className="section-title" style={{ marginBottom: "0.35rem" }}>
+                  Notificações
+                </p>
+                <p className="muted" style={{ margin: 0 }}>
+                  Nenhuma notificação no momento.
+                </p>
+              </div>
+            ) : null}
+          </div>
+
+          <button
             type="button"
-            variant="outline"
-            size="icon"
-            aria-label="Notificações"
+            className="avatar avatar-btn"
+            title={user?.name ?? "Usuário"}
+            aria-label="Abrir meu perfil"
+            onClick={openProfile}
           >
-            <Bell size={16} />
-          </Button>
-          <span className="avatar" aria-hidden>
-            P
-          </span>
+            {initials}
+          </button>
         </div>
       </header>
 
@@ -194,7 +248,9 @@ export function Header() {
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {
                   e.preventDefault();
-                  setActive((i) => Math.min(i + 1, Math.max(filtered.length - 1, 0)));
+                  setActive((i) =>
+                    Math.min(i + 1, Math.max(filtered.length - 1, 0)),
+                  );
                 }
                 if (e.key === "ArrowUp") {
                   e.preventDefault();
@@ -204,7 +260,7 @@ export function Header() {
                   go(filtered[active].href);
                 }
               }}
-              placeholder="Buscar tarefas, projetos ou wiki..."
+              placeholder="Pesquisar..."
             />
             <div className="cmdk-list">
               {loading ? (
