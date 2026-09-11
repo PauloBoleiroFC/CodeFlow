@@ -7,12 +7,16 @@ const PUBLIC_PATHS = [
   "/register",
   "/api/auth/login",
   "/api/auth/register",
+  "/api/auth/me",
+  "/api/auth/logout",
 ];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublic =
-    PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`)) ||
+    PUBLIC_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    ) ||
     pathname.startsWith("/_next") ||
     pathname === "/favicon.ico";
 
@@ -41,5 +45,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

@@ -2,12 +2,10 @@
 
 import { type FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { formatApiError } from "@/lib/branch";
 
 export function RegisterForm() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,8 +33,8 @@ export function RegisterForm() {
       if (!res.ok) {
         throw new Error(formatApiError(data.error, "Falha ao cadastrar"));
       }
-      router.replace("/");
-      router.refresh();
+      // Full reload so the session cookie is applied on the next request
+      window.location.assign("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro ao cadastrar");
     } finally {

@@ -62,10 +62,14 @@ export async function parseSessionToken(
 }
 
 export function sessionCookieOptions(maxAgeSeconds = 60 * 60 * 24 * 14) {
+  const flag = process.env.AUTH_COOKIE_SECURE?.trim().toLowerCase();
+  // Padrão: false (HTTP em VPS). Com HTTPS, use AUTH_COOKIE_SECURE=true
+  const secure = flag === "true" || flag === "1";
+
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     path: "/",
     maxAge: maxAgeSeconds,
   };
