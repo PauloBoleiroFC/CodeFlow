@@ -8,6 +8,7 @@ import {
   type BranchFormValue,
 } from "@/components/branch-form-section";
 import { CopyBranchButton } from "@/components/copy-branch-button";
+import { DeleteTaskButton } from "@/components/delete-task-button";
 import { BranchTypeBadge } from "@/components/ui/branch-type-badge";
 import { TaskStatusSelect } from "@/components/task-status-select";
 import { Button } from "@/components/ui/button";
@@ -272,19 +273,32 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
   return (
     <div className="stack task-detail">
       <section className="page-hero">
-        <div className="actions" style={{ marginBottom: "0.55rem" }}>
-          <BranchTypeBadge type={form.branchType} />
-          <TaskStatusSelect
-            value={status}
-            disabled={pendingId === task.id}
-            onChange={(next) => {
-              setStatus(next);
-              void updateStatus(task.id, next).catch(() => {
-                setStatus(
-                  isTaskStatus(task.status) ? task.status : DEFAULT_TASK_STATUS,
-                );
-              });
-            }}
+        <div
+          className="actions"
+          style={{ marginBottom: "0.55rem", justifyContent: "space-between" }}
+        >
+          <div className="actions">
+            <BranchTypeBadge type={form.branchType} />
+            <TaskStatusSelect
+              value={status}
+              disabled={pendingId === task.id}
+              onChange={(next) => {
+                setStatus(next);
+                void updateStatus(task.id, next).catch(() => {
+                  setStatus(
+                    isTaskStatus(task.status)
+                      ? task.status
+                      : DEFAULT_TASK_STATUS,
+                  );
+                });
+              }}
+            />
+          </div>
+          <DeleteTaskButton
+            taskId={task.id}
+            taskTitle={form.title || task.title}
+            projectId={projectId || task.projectId}
+            compact
           />
         </div>
         <h1 style={{ marginTop: "0.25rem" }}>{form.title || task.title}</h1>

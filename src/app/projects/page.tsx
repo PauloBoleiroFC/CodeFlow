@@ -2,7 +2,6 @@ import { FolderKanban, Plus } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
-import { ProjectCardActions } from "@/components/project-card-actions";
 import { summarizeHtml } from "@/lib/task-paths";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
@@ -61,11 +60,6 @@ export default async function ProjectsPage() {
                   {formatDate(project.updatedAt)}
                 </p>
               </Link>
-              <ProjectCardActions
-                projectId={project.id}
-                projectName={project.name}
-                taskCount={project._count.tasks}
-              />
             </article>
           ))}
         </div>

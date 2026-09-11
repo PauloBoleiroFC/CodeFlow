@@ -8,18 +8,16 @@ import { Button } from "@/components/ui/button";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 
 type Props = {
-  projectId: string;
-  projectName: string;
-  taskCount: number;
-  redirectTo?: string;
+  taskId: string;
+  taskTitle: string;
+  projectId?: string | null;
   compact?: boolean;
 };
 
-export function DeleteProjectButton({
+export function DeleteTaskButton({
+  taskId,
+  taskTitle,
   projectId,
-  projectName,
-  taskCount,
-  redirectTo = "/projects",
   compact = false,
 }: Props) {
   const router = useRouter();
@@ -32,15 +30,14 @@ export function DeleteProjectButton({
     setDeleting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/projects/${projectId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(formatApiError(data.error, "Falha ao excluir"));
       }
-      show("Projeto excluído com sucesso.");
+      show("Tarefa excluída com sucesso.");
       setOpen(false);
+      const redirectTo = projectId ? `/projects/${projectId}` : "/tasks";
       router.push(redirectTo);
       router.refresh();
     } catch (err) {
@@ -58,17 +55,13 @@ export function DeleteProjectButton({
         loading={deleting}
         onClick={() => setOpen(true)}
       >
-        {compact ? "Excluir" : "Excluir projeto"}
+        {compact ? "Excluir" : "Excluir tarefa"}
       </Button>
       {error ? <p className="error">{error}</p> : null}
       <ConfirmModal
         open={open}
-        title="Excluir projeto"
-        description={
-          taskCount > 0
-            ? `Excluir "${projectName}"? As ${taskCount} tarefa(s) deste projeto também serão excluídas. Esta ação não pode ser desfeita.`
-            : `Excluir o projeto "${projectName}"? Esta ação não pode ser desfeita.`
-        }
+        title="Excluir tarefa"
+        description={`Excluir "${taskTitle}"? O histórico da timeline também será removido. Esta ação não pode ser desfeita.`}
         confirmLabel="Excluir"
         variant="danger"
         loading={deleting}

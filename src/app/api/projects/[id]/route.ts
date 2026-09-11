@@ -138,16 +138,13 @@ export async function DELETE(
   }
 
   await prisma.$transaction([
-    prisma.task.updateMany({
-      where: { projectId: id },
-      data: { projectId: null },
-    }),
+    prisma.task.deleteMany({ where: { projectId: id } }),
     prisma.project.delete({ where: { id } }),
   ]);
 
   return NextResponse.json({
     ok: true,
     deletedId: id,
-    unlinkedTasks: existing._count.tasks,
+    deletedTasks: existing._count.tasks,
   });
 }

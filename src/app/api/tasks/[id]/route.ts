@@ -267,3 +267,26 @@ async function patchTask(
     tags: JSON.parse(task.tagsJson) as string[],
   });
 }
+
+export async function DELETE(
+  _request: Request,
+  ctx: RouteContext<"/api/tasks/[id]">,
+) {
+  const { id } = await ctx.params;
+  const existing = await prisma.task.findUnique({
+    where: { id },
+    select: { id: true, projectId: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Tarefa não encontrada" }, { status: 404 });
+  }
+
+  await prisma.task.delete({ where: { id } });
+
+  return NextResponse.json({
+    ok: true,
+    deletedId: id,
+    projectId: existing.projectId,
+  });
+}

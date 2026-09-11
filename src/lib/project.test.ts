@@ -94,12 +94,9 @@ describe("project module", () => {
     assert.equal(free.projectId, null);
   });
 
-  it("unlinks tasks when deleting project", async () => {
+  it("deletes tasks when deleting project", async () => {
     await prisma.$transaction([
-      prisma.task.updateMany({
-        where: { projectId },
-        data: { projectId: null },
-      }),
+      prisma.task.deleteMany({ where: { projectId } }),
       prisma.project.delete({ where: { id: projectId } }),
     ]);
     projectId = "";
@@ -107,7 +104,6 @@ describe("project module", () => {
     const remaining = await prisma.task.findUnique({
       where: { id: taskWithProject },
     });
-    assert.ok(remaining);
-    assert.equal(remaining.projectId, null);
+    assert.equal(remaining, null);
   });
 });
