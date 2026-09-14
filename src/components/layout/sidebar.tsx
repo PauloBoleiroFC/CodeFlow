@@ -23,6 +23,22 @@ const NAV = [
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
+
+  const isNestedProjectTask = /^\/projects\/[^/]+\/tasks(\/|$)/.test(pathname);
+
+  if (href === "/tasks") {
+    return (
+      pathname === "/tasks" ||
+      pathname.startsWith("/tasks/") ||
+      isNestedProjectTask
+    );
+  }
+
+  if (href === "/projects") {
+    if (isNestedProjectTask) return false;
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

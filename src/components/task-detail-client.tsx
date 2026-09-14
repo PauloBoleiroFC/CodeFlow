@@ -2,23 +2,27 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import {
   BranchFormSection,
   syncStructuredBranch,
   type BranchFormValue,
 } from "@/components/branch-form-section";
+import { useAuth } from "@/components/auth-provider";
 import { CopyBranchButton } from "@/components/copy-branch-button";
 import { DeleteTaskButton } from "@/components/delete-task-button";
 import { BranchTypeBadge } from "@/components/ui/branch-type-badge";
 import { TaskStatusSelect } from "@/components/task-status-select";
 import { Button } from "@/components/ui/button";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
+import { RichTextField } from "@/components/ui/rich-text-field";
 import { useTaskStatusUpdate } from "@/hooks/use-task-status-update";
 import {
   formatApiError,
   generateSlug,
   type BranchType,
 } from "@/lib/branch";
-import { taskHref } from "@/lib/task-paths";
+import { stripHtml, taskHref } from "@/lib/task-paths";
 import {
   DEFAULT_TASK_STATUS,
   isTaskStatus,
@@ -69,6 +73,7 @@ function formatDate(value: string) {
 
 export function TaskDetailClient({ task, globalBranchFormat }: Props) {
   const router = useRouter();
+  const { user } = useAuth();
   const format = globalBranchFormat ?? undefined;
   const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [projectId, setProjectId] = useState(task.projectId ?? "");
@@ -78,6 +83,10 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
   const [events, setEvents] = useState(task.events);
   const [note, setNote] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+  const [eventPendingDelete, setEventPendingDelete] = useState<EventItem | null>(
+    null,
+  );
 
   const [form, setForm] = useState<BranchFormValue>({
     title: task.title,
@@ -227,7 +236,7 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
 
   async function addTimelineNote(event: FormEvent) {
     event.preventDefault();
-    if (!note.trim()) {
+    if (!stripHtml(note)) {
       setError("Informe a observação da timeline.");
       return;
     }
@@ -237,21 +246,16 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
       const res = await fetch(`/api/tasks/${task.id}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: note.trim() }),
+        body: JSON.stringify({
+          content: note,
+          userName: user?.name,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(formatApiError(data.error, "Falha ao adicionar"));
       }
-      setEvents(
-        (data.events as EventItem[]).map((item) => ({
-          ...item,
-          createdAt:
-            typeof item.createdAt === "string"
-              ? item.createdAt
-              : new Date(item.createdAt).toISOString(),
-        })),
-      );
+      setEvents(normalizeEvents(data.events as EventItem[]));
       setNote("");
       router.refresh();
     } catch (err) {
@@ -259,6 +263,39 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
     } finally {
       setNoteSaving(false);
     }
+  }
+
+  async function confirmDeleteEvent() {
+    if (!eventPendingDelete) return;
+    setDeletingEventId(eventPendingDelete.id);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/tasks/${task.id}/events/${eventPendingDelete.id}`,
+        { method: "DELETE" },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(formatApiError(data.error, "Falha ao excluir"));
+      }
+      setEvents(normalizeEvents(data.events as EventItem[]));
+      setEventPendingDelete(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao excluir");
+    } finally {
+      setDeletingEventId(null);
+    }
+  }
+
+  function normalizeEvents(list: EventItem[]): EventItem[] {
+    return list.map((item) => ({
+      ...item,
+      createdAt:
+        typeof item.createdAt === "string"
+          ? item.createdAt
+          : new Date(item.createdAt).toISOString(),
+    }));
   }
 
   const displayBranch = form.branchManual
@@ -383,20 +420,13 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
             </h2>
 
             <form className="timeline-composer" onSubmit={addTimelineNote}>
-              <label>
-                Nova observação
-                <textarea
-                  rows={3}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder='Ex.: "Identificado que o problema estava no cálculo do investimento_seller."'
-                />
-              </label>
-              <Button
-                type="submit"
-                variant="secondary"
-                loading={noteSaving}
-              >
+              <RichTextField
+                label="Nova observação"
+                value={note}
+                onChange={setNote}
+                placeholder="Descreva o andamento, descobertas ou decisões..."
+              />
+              <Button type="submit" variant="secondary" loading={noteSaving}>
                 Adicionar à timeline
               </Button>
             </form>
@@ -405,8 +435,22 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
               {events.map((event) => (
                 <li key={event.id}>
                   <span className="timeline-dot" aria-hidden />
-                  <div>
-                    <time>{formatDate(event.createdAt)}</time>
+                  <div className="timeline-item">
+                    <div className="timeline-item-head">
+                      <time>{formatDate(event.createdAt)}</time>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="btn-sm"
+                        aria-label="Excluir item da timeline"
+                        title="Excluir"
+                        disabled={deletingEventId === event.id}
+                        onClick={() => setEventPendingDelete(event)}
+                      >
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
                     {event.type === "branch_changed" ? (
                       <>
                         <p style={{ margin: "0.25rem 0" }}>
@@ -445,7 +489,13 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
                         <p style={{ margin: "0.25rem 0" }}>
                           <strong>Observação</strong>
                         </p>
-                        <p style={{ margin: 0 }}>{event.newValue}</p>
+                        <div
+                          className="prose-html"
+                          style={{ margin: 0 }}
+                          dangerouslySetInnerHTML={{
+                            __html: event.newValue || "",
+                          }}
+                        />
                       </>
                     ) : (
                       <>
@@ -465,6 +515,21 @@ export function TaskDetailClient({ task, globalBranchFormat }: Props) {
           </section>
         </aside>
       </div>
+
+      <ConfirmModal
+        open={Boolean(eventPendingDelete)}
+        title="Excluir item da timeline"
+        description="Remover este item da timeline? Esta ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        variant="danger"
+        loading={Boolean(deletingEventId)}
+        onConfirm={() => {
+          void confirmDeleteEvent();
+        }}
+        onCancel={() => {
+          if (!deletingEventId) setEventPendingDelete(null);
+        }}
+      />
     </div>
   );
 }

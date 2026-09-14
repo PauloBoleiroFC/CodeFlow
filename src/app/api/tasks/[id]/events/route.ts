@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getSessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { stripHtml } from "@/lib/task-paths";
 
 const noteSchema = z.object({
-  content: z.string().trim().min(1, "Informe a observação").max(5000),
+  content: z
+    .string()
+    .min(1, "Informe a observação")
+    .max(20000, "Observação muito longa"),
   userName: z.string().optional(),
 });
 
@@ -25,12 +30,23 @@ export async function POST(
     );
   }
 
+  if (!stripHtml(parsed.data.content)) {
+    return NextResponse.json(
+      { error: "Informe a observação" },
+      { status: 400 },
+    );
+  }
+
+  const session = await getSessionUser();
   const event = await prisma.taskEvent.create({
     data: {
       taskId: id,
       type: "note",
-      newValue: parsed.data.content.trim(),
-      userName: parsed.data.userName ?? "Usuário",
+      newValue: parsed.data.content,
+      userName:
+        parsed.data.userName?.trim() ||
+        session?.name ||
+        "Usuário",
     },
   });
 

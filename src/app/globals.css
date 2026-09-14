@@ -1350,6 +1350,17 @@ button.badge {
   font-size: 0.82rem;
 }
 
+.timeline-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.timeline-item-head time {
+  margin: 0;
+}
+
 .arrow {
   color: var(--muted);
 }
